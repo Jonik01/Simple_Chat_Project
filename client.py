@@ -1,13 +1,62 @@
 import socket
+import threading
 import sys
 
-#setup client socket
+# 1. Function to continuously listen for messages from the server
+def receive_messages(sock):
+    while True:
+        try:
+            # Wait for data (blocks here, but in a separate thread)
+            message = sock.recv(1024).decode('utf-8')
+            
+            if message:
+                print(f"\n{message}") # Print on a new line
+            else:
+                # Empty message means server closed connection
+                print("\nDisconnected from server.")
+                sock.close()
+                sys.exit()
+                
+        except Exception as e:
+            print(f"\nError receiving message: {e}")
+            sock.close()
+            sys.exit()
+
+# 2. Setup Client Socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('localhost', 10000)
-print("Connecting to {} port {}".format(*server_address))
-try:    
+
+try:
+    print(f"Connecting to {server_address[0]} port {server_address[1]}...")
     client_socket.connect(server_address)
+    print("Connected! You can start typing messages.")
 except Exception as e:
-    print("Connection failed: {}".format(e))
+    print(f"Connection failed: {e}")
     sys.exit(1)
-print("Connected to server at {}:{}".format(*server_address))
+
+# 3. Start the "Listening" Thread
+# This runs 'receive_messages' in the background so it doesn't block your typing
+receive_thread = threading.Thread(target=receive_messages, args=(client_socket,))
+receive_thread.daemon = True # Kills this thread if the main program exits
+receive_thread.start()
+
+# 4. Main Loop: Handle Sending (User Input)
+while True:
+    try:
+        # Wait for user input
+        message_to_send = input() 
+        
+        if message_to_send.lower() == 'quit':
+            break
+            
+        client_socket.send(message_to_send.encode('utf-8'))
+        
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        break
+    except Exception as e:
+        print(f"Error sending message: {e}")
+        break
+
+print("Closing connection...")
+client_socket.close()

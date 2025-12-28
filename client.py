@@ -2,6 +2,9 @@ import socket
 import threading
 import sys
 
+host='172.20.10.4'
+port=10000
+
 # 1. Function to continuously listen for messages from the server
 def receive_messages(sock):
     while True:
@@ -24,7 +27,7 @@ def receive_messages(sock):
 
 # 2. Setup Client Socket
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('localhost', 10000)
+server_address = (host, port)
 
 try:
     print(f"Connecting to {server_address[0]} port {server_address[1]}...")

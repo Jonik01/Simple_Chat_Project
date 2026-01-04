@@ -2,18 +2,18 @@ import socket
 import threading
 import sys
 
-host='172.20.10.4'
+host='localhost' #change to fit server address
 port=10000
 
 # 1. Function to continuously listen for messages from the server
 def receive_messages(sock):
     while True:
         try:
-            # Wait for data (blocks here, but in a separate thread)
+            # Wait for data
             message = sock.recv(1024).decode('utf-8')
             
             if message:
-                print(f"\n{message}") # Print on a new line
+                print(f"\n{message}")
             else:
                 # Empty message means server closed connection
                 print("\nDisconnected from server.")
@@ -37,8 +37,7 @@ except Exception as e:
     print(f"Connection failed: {e}")
     sys.exit(1)
 
-# 3. Start the "Listening" Thread
-# This runs 'receive_messages' in the background so it doesn't block your typing
+#Start the Listening Thread
 receive_thread = threading.Thread(target=receive_messages, args=(client_socket,))
 receive_thread.daemon = True # Kills this thread if the main program exits
 receive_thread.start()
@@ -55,7 +54,7 @@ while True:
         client_socket.send(message_to_send.encode('utf-8'))
         
     except KeyboardInterrupt:
-        # Handle Ctrl+C gracefully
+        # Handle Ctrl+C
         break
     except Exception as e:
         print(f"Error sending message: {e}")

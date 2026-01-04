@@ -8,17 +8,35 @@ class ChatServer:
         self.port = port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clients = {}
-    #function to handle client connections
+    
+    def broadcast_participants(self):
+    #function to broadcast list of active participants
+        user_list = ', '.join(self.clients.keys())
+        message = f"Active participants: {user_list}"
+        for client in self.clients.values():
+           try:
+               client.send(message.encode('utf-8'))
+           except:
+               pass
+
     def handle_client(self, connection, client_address):
+    #function to handle client connections
         print("Connection from", client_address)
         current_username = None
         try:
             #Registration phase
             connection.send("Welcome to the Chat Server! Please enter your username: ".encode('utf-8'))
-            current_username = connection.recv(2048).decode('utf-8').strip()
+            while True:
+                current_username = connection.recv(2048).decode('utf-8').strip()
+                if current_username in self.clients:
+                    connection.send("Username already taken. Please choose another.".encode('utf-8'))
+                else:
+                    break
             self.clients[current_username] = connection
             print(f"User {current_username} registered.")
             connection.send(f"Hello {current_username}. To chat, type: 'TargetName: Message'".encode('utf-8'))
+            self.broadcast_participants()
+
             
             #MAIN CHAT LOOP
             while True:
@@ -42,13 +60,14 @@ class ChatServer:
                         connection.send(f"User {target_name} not found.".encode('utf-8'))
                 else:
                     connection.send("Invalid message format. Use 'TargetName: Message'.".encode('utf-8'))
-
         except Exception as e:
             print("Error:", e)
+            
         finally:
             #Cleanup on disconnect
             if current_username in self.clients:
                 del self.clients[current_username]
+                self.broadcast_user_list()
             print("Closing connection from", client_address)
             connection.close()
 

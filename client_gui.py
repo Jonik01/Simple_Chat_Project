@@ -17,8 +17,8 @@ class ChatClientGUI:
         self.build_login_screen()
         self.root.mainloop()
 
+    #builds initial login screen for the user
     def build_login_screen(self):
-    ##builds initial login screen for the user
         default_value = 'localhost' ##DEFAULT VALUE - Change for convenience
        
         #setup login frame
@@ -42,8 +42,8 @@ class ChatClientGUI:
         btn = tk.Button(self.login_frame, text="Connect", command=self.connect_to_server, bg="lightblue")
         btn.pack(fill='x', pady=20)
 
+    #connects to server and builds chat screen
     def connect_to_server(self,event=None):
-    ##connects to server and builds chat screen
         ip=self.ipentry.get()
         username = self.name_entry.get().strip()
         if not ip or not username:
@@ -64,8 +64,8 @@ class ChatClientGUI:
         except Exception as e:
             messagebox.showerror("Connection Error", f"Could not connect: {e}")
 
+    #chat "contacts" screen
     def build_list_screen(self):
-        ##chat "contacts" screen
         self.root.geometry("400x500") ##Window Size Control
         self.root.title(f"Logged in as: {self.username}")
         self.list_frame=tk.Frame(self.root)
@@ -81,8 +81,8 @@ class ChatClientGUI:
             self.status_label = tk.Label(self.users_container, text="Waiting for user list...", fg="gray")
             self.status_label.pack()
 
+    #Runs in a background thread. Listens for server signals.
     def receive_messages(self):
-        #Runs in a background thread. Listens for server signals.
         while True:
             try:
                 # Wait for message
@@ -113,8 +113,8 @@ class ChatClientGUI:
                 print(f"Error receiving message: {e}")
                 break
     
+    #Update the displayed list of active users
     def update_user_list(self, active_users):
-        #Update the displayed list of active users
         for widget in self.users_container.winfo_children():
             widget.destroy()
         for user in active_users:
@@ -127,12 +127,14 @@ class ChatClientGUI:
             if len(self.users_container.winfo_children()) == 0:
                 tk.Label(self.users_container, text="No other users online", fg="gray").pack()
     
+    #Start chat with specific user
     def start_chat(self, target_user):
         self.current_chat_partner = target_user
         #Update to chat frame
         self.list_frame.destroy()
         self.build_chat_screen()
-        
+
+    #Constructing chat UI    
     def build_chat_screen(self):
         #Chat view
         self.root.title(f"Chatting with {self.current_chat_partner}")
@@ -155,12 +157,14 @@ class ChatClientGUI:
         send_btn = tk.Button(input_frame, text="Send", command=self.send_message, bg="lightgreen")
         send_btn.pack(side='right')
     
+    #To return from chat back to users list
     def go_back_to_list(self):
         #End chat and return to list
         self.current_chat_partner = None
         self.chat_frame.destroy()
         self.build_list_screen()
-       
+
+    #New message Handling   
     def send_message(self):
         #Send text to server
         text = self.msg_entry.get()
@@ -174,8 +178,8 @@ class ChatClientGUI:
             full_msg = f"{self.current_chat_partner}:{text}"
             self.client_socket.send(full_msg.encode('utf-8'))
     
+    #Helper function for scrolling history
     def append_message(self, text):
-        #helper function for scrolling history
         self.chat_history.config(state='normal') # Unlock
         self.chat_history.insert(tk.END, text + "\n")
         self.chat_history.config(state='disabled') # Lock again

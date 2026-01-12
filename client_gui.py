@@ -8,15 +8,18 @@ class ChatClientGUI:
     def __init__(self):
         self.root=tk.Tk()
         self.root.title("Chat Client")
+        self.root.geometry("400x500")
         self.client_socket=None
         self.username=""
         self.current_chat_partner=None
+        self.known_users = []
 
         self.build_login_screen()
         self.root.mainloop()
 
     def build_login_screen(self):
     ##builds initial login screen for the user
+        default_value = 'localhost' ##DEFAULT VALUE - Change for convenience
        
         #setup login frame
         self.login_frame=tk.Frame(self.root)
@@ -26,19 +29,20 @@ class ChatClientGUI:
         #server IP entry
         tk.Label(self.login_frame, text="Server IP:").pack(anchor='w')
         self.ipentry=tk.Entry(self.login_frame)
-        self.ipentry.insert(0,'localhost') #DEFAULT VALUE
+        self.ipentry.insert(0, default_value)
         self.ipentry.pack(fill='x', pady=5)
        
         #username entry
         tk.Label(self.login_frame, text="Username:").pack(anchor='w')
         self.name_entry=tk.Entry(self.login_frame)
         self.name_entry.pack(fill='x', pady=5)
-
+        #Use 'Enter' to continue
+        self.ipentry.bind('<Return>', self.connect_to_server)
         #"connect" button
         btn = tk.Button(self.login_frame, text="Connect", command=self.connect_to_server, bg="lightblue")
         btn.pack(fill='x', pady=20)
 
-    def connect_to_server(self):
+    def connect_to_server(self,event=None):
     ##connects to server and builds chat screen
         ip=self.ipentry.get()
         username = self.name_entry.get().strip()
@@ -48,6 +52,7 @@ class ChatClientGUI:
         try: #establish connection
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((ip, 10000))
+            self.client_socket.recv(1024)
             # Send username for registration
             self.client_socket.send(username.encode('utf-8'))
             self.username = username
@@ -61,18 +66,20 @@ class ChatClientGUI:
 
     def build_list_screen(self):
         ##chat "contacts" screen
-        self.root.geometry("400x600") ##Window Size Control
+        self.root.geometry("400x500") ##Window Size Control
         self.root.title(f"Logged in as: {self.username}")
         self.list_frame=tk.Frame(self.root)
         self.list_frame.pack(fill='both', expand=True, padx=20, pady=20)
         #title header
         tk.Label(self.list_frame, text="Active Users", font=("Arial", 16, "bold"), bg="#ddd").pack(fill='x', pady=5)
         
-       #TODO this is a placeholder
         self.users_container = tk.Frame(self.list_frame)
         self.users_container.pack(fill='both', expand=True, padx=10, pady=10)
-        self.status_label = tk.Label(self.users_container, text="Waiting for user list...", fg="gray")
-        self.status_label.pack()
+        if self.known_users:
+            self.update_user_list(self.known_users)
+        else:
+            self.status_label = tk.Label(self.users_container, text="Waiting for user list...", fg="gray")
+            self.status_label.pack()
 
     def receive_messages(self):
         #Runs in a background thread. Listens for server signals.
@@ -87,6 +94,7 @@ class ChatClientGUI:
                 if message.startswith("LIST:"):
                     user_csv = message[5:] 
                     active_users = user_csv.split(",")
+                    self.known_users=active_users
                     #Update list if list is active
                     if hasattr(self, 'list_frame') and self.list_frame.winfo_exists():
                         self.update_user_list(active_users)

@@ -2,6 +2,8 @@ import socket
 import threading
 import sys
 
+#TODO implement GUI version later
+
 host='localhost' #change to fit server address
 port=10000
 

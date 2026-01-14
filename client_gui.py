@@ -59,10 +59,18 @@ class ChatClientGUI:
         try: #establish connection
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((ip, 10000))
-            self.client_socket.recv(1024)
             # Send username for registration
             self.client_socket.send(username.encode('utf-8'))
-            
+            response = self.client_socket.recv(1024).decode('utf-8')
+            #Check username availability
+            if "taken" in response:
+                messagebox.showerror("Login failed", "Username already taken")
+                self.client_socket.close()
+                return
+            if "LIST:" in response:
+                list_part = response.split("LIST:")[1]
+                self.known_users = list_part.split(",")
+
             ## IF REACHED - USER CONNECTED ##
             self.username = username
             self.last_ip = ip
@@ -115,7 +123,7 @@ class ChatClientGUI:
                     self.known_users=active_users
                     #Update list if list is active
                     if hasattr(self, 'list_frame') and self.list_frame.winfo_exists():
-                        self.update_user_list(active_users)
+                        self.root.after(0,self.update_user_list,active_users)
                 elif message.startswith("MSG:"):
                     # Format: MSG:SenderName:Content
                     parts = message.split(':', 2)

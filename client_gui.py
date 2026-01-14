@@ -5,6 +5,7 @@ import threading
 
 # GUI class for the chat client
 class ChatClientGUI:
+    default_ip = 'localhost' ##Default value, Change for convenince
     def __init__(self):
         self.root=tk.Tk()
         self.root.title("Chat Client")
@@ -13,14 +14,15 @@ class ChatClientGUI:
         self.username=""
         self.current_chat_partner=None
         self.known_users = []
+        self.last_ip = self.default_ip 
+        self.last_username = ""
 
         self.build_login_screen()
         self.root.mainloop()
 
     #builds initial login screen for the user
     def build_login_screen(self):
-        default_value = 'localhost' ##DEFAULT VALUE - Change for convenience
-       
+
         #setup login frame
         self.login_frame=tk.Frame(self.root)
         self.login_frame.pack(fill='both', expand=True, padx=20, pady=20)
@@ -29,16 +31,19 @@ class ChatClientGUI:
         #server IP entry
         tk.Label(self.login_frame, text="Server IP:").pack(anchor='w')
         self.ipentry=tk.Entry(self.login_frame)
-        self.ipentry.insert(0, default_value)
+        self.ipentry.insert(0, self.last_ip)
         self.ipentry.pack(fill='x', pady=5)
        
         #username entry
         tk.Label(self.login_frame, text="Username:").pack(anchor='w')
         self.name_entry=tk.Entry(self.login_frame)
+        self.name_entry.insert(0, self.last_username)
         self.name_entry.pack(fill='x', pady=5)
+        
         #"connect" button
         btn = tk.Button(self.login_frame, text="Connect", command=self.connect_to_server, bg="lightblue")
         btn.pack(fill='x', pady=20)
+        
         #Use 'Enter' to continue
         self.ipentry.bind('<Return>', self.connect_to_server)
         self.name_entry.bind('<Return>', self.connect_to_server)
@@ -50,18 +55,24 @@ class ChatClientGUI:
         if not ip or not username:
             messagebox.showerror("Error", "Please enter both IP and Username")
             return  
+        
         try: #establish connection
             self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.client_socket.connect((ip, 10000))
             self.client_socket.recv(1024)
             # Send username for registration
             self.client_socket.send(username.encode('utf-8'))
+            
+            ## IF REACHED - USER CONNECTED ##
             self.username = username
+            self.last_ip = ip
+            self.last_username = username
             #switch frame to chat screen
             self.login_frame.destroy()
             self.build_list_screen()
             #start listening thread
             threading.Thread(target=self.receive_messages, daemon=True).start()
+        
         except Exception as e:
             messagebox.showerror("Connection Error", f"Could not connect: {e}")
 
@@ -87,10 +98,16 @@ class ChatClientGUI:
         while True:
             try:
                 # Wait for message
-                message = self.client_socket.recv(1024).decode('utf-8')
+                if self.client_socket:
+                    message = self.client_socket.recv(1024).decode('utf-8')
+                else:
+                    break
+                
                 # If connection closes, stop loop
                 if not message:
+                    self.root.after(0,self.handle_disconnect)
                     break
+                
                 # Update user list if message contains "List:"
                 if message.startswith("LIST:"):
                     user_csv = message[5:] 
@@ -111,7 +128,9 @@ class ChatClientGUI:
                         print(f"Notification: Message from {sender}")
             
             except Exception as e:
-                print(f"Error receiving message: {e}")
+                print(f"Connection lost: {e}")
+                # Trigger disconnect on error
+                self.root.after(0, self.handle_disconnect)
                 break
     
     #Update the displayed list of active users
@@ -185,6 +204,29 @@ class ChatClientGUI:
         self.chat_history.insert(tk.END, text + "\n")
         self.chat_history.config(state='disabled') # Lock again
         self.chat_history.see(tk.END) # Auto-scroll to bottom
+    
+    #Handles server shutting down mid use
+    def handle_disconnect(self):
+        #Dont run again if connection closed
+        if not self.client_socket:
+            return
+        #Cleanup sockets
+        try:
+            self.client_socket.close()
+        except:
+            pass
+        self.client_socket=None
+        
+        messagebox.showerror("Disconnected","Lost connection to server. Returning to login screen") #Notify user about disconnect
+        #Destroy frames
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        #Reset info
+        self.username=""
+        self.current_chat_partner=None
+        self.known_users=[]
+        #Reframe to login
+        self.build_login_screen()
     
                     
 

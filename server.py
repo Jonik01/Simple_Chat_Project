@@ -79,7 +79,17 @@ class ChatServer:
             self.server_socket.bind((self.host, self.port))
             self.server_socket.listen(5) 
             self.server_socket.settimeout(1.0) #refreshing for inturrupt detection
-            print(f"Server started on {self.host}:{self.port}")
+            #Get server IP for user
+            try:
+                test_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                test_socket.connect(("8.8.8.8", 80))
+                actual_ip = test_socket.getsockname()[0]
+                test_socket.close()
+            except:
+                actual_ip = "127.0.0.1" # Fallback if no internet
+            
+            print(f"Server started!")
+            print(f"Link for clients: {actual_ip}")
             print("Waiting for connections...")
             
             while True:

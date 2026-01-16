@@ -15,7 +15,9 @@ class ChatServer:
         message = f"LIST: {user_list}"
         for client in self.clients.values():
            try:
+               client.setblocking(False)
                client.send(message.encode('utf-8'))
+               client.setblocking(True)
            except:
                pass
     
@@ -23,7 +25,9 @@ class ChatServer:
         formatted_msg = f"MSG:{sender_name}:{message}"
         for client in self.clients.values():
             try:
+                client.setblocking(False)
                 client.send(formatted_msg.encode('utf-8'))
+                client.setblocking(True)
             except:
                 pass
 

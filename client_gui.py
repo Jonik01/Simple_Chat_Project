@@ -3,6 +3,10 @@ from tkinter import messagebox
 import socket
 import threading
 
+#TODO add new message notifications
+#TODO add indicator to username at all times
+#TODO modernize UI
+
 # GUI class for the chat client
 class ChatClientGUI:
     default_ip = 'localhost' ##Default value, Change for convenince
